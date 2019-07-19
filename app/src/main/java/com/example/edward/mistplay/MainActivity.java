@@ -22,6 +22,8 @@ import cz.msebera.android.httpclient.Header;
 
 public class MainActivity extends AppCompatActivity {
 
+    private String error = null;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -62,24 +64,28 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void searchGame(View view) {
+        error = "";
         final TextView tv = (TextView) findViewById(R.id.searchgame_name);
         final TextView gamesList = (TextView) findViewById(R.id.textViewGames);
-        HttpUtils.post("/search?term=" + tv.getText().toString() + "&index=10", new RequestParams(), new JsonHttpResponseHandler() {
+        RequestParams params = new RequestParams();
+        params.put("term", tv.getText().toString());
+        params.put("index", 1);
+        HttpUtils.get("search/", params, new JsonHttpResponseHandler() {
             @Override
             public void onSuccess(int statusCode, Header[] headers, JSONObject response) {
                 tv.setText("");
-                gamesList.setText("Title | Category | Rating \n");
+                gamesList.setText("                                 Title    |    Category    |    Rating \n");
                 JSONArray jsonGamesArray = null;
                 try {
                     jsonGamesArray = response.getJSONObject("data").getJSONArray("games");
                     for (int i = 0; i < jsonGamesArray.length(); i++) {
                         try {
-                            String gameTitle = jsonGamesArray.getJSONObject(i).getString("tile");
+                            String gameTitle = jsonGamesArray.getJSONObject(i).getString("title");
                             String gameCategory = jsonGamesArray.getJSONObject(i).getString("category");
                             String gameRating = jsonGamesArray.getJSONObject(i).getString("rating");
-                            gamesList.append(gameTitle + " | ");
+                            gamesList.append(i+1 + ". " + gameTitle + " | ");
                             gamesList.append(gameCategory + " | ");
-                            gamesList.append(gameRating + "\n");
+                            gamesList.append(gameRating + "\n \n");
                         } catch (JSONException e) {
                             throw new RuntimeException(e);
                         }
@@ -90,6 +96,16 @@ public class MainActivity extends AppCompatActivity {
             }
             @Override
             public void onFailure(int statusCode, Header[] headers, Throwable throwable, JSONObject errorResponse) {
+                try{
+                    error = errorResponse.get("message").toString();
+                } catch (JSONException e){
+                    error += e.getMessage();
+                }
+            }
+
+            @Override
+            public void onFailure(int statusCode, Header[] headers, String message, Throwable throwable) {
+                error = "";
             }
         });
     }
